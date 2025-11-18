@@ -78,6 +78,27 @@ def generate_commits(frames, start_date, intensity, frame_spacing_weeks=1, dry_r
                                            message=f"BadApple F{f_idx+1} W{week_index+1} D{day_index+1}")
 
 
+def compute_date_range(frames, base, frame_spacing_weeks=1, frame_spacing_days=None):
+    # returns (min_date, max_date) across all '1' pixels in frames
+    min_date = None
+    max_date = None
+    for f_idx, weeks in enumerate(frames):
+        if frame_spacing_days is not None:
+            frame_offset = timedelta(days=f_idx * frame_spacing_days)
+        else:
+            frame_offset = timedelta(weeks=f_idx * frame_spacing_weeks)
+
+        for week_index, week_data in enumerate(weeks):
+            for day_index, should_commit in enumerate(week_data):
+                if should_commit:
+                    target_date = base + frame_offset + timedelta(weeks=week_index, days=day_index)
+                    if min_date is None or target_date < min_date:
+                        min_date = target_date
+                    if max_date is None or target_date > max_date:
+                        max_date = target_date
+    return (min_date, max_date)
+
+
 def parse_date(date_str):
     return datetime.strptime(date_str, "%Y-%m-%d")
 
@@ -127,6 +148,13 @@ def main():
         frames_to_use = frames[args.start_frame:]
     else:
         frames_to_use = frames[args.start_frame:args.end_frame]
+
+    # Show date range for planned commits
+    min_date, max_date = compute_date_range(frames_to_use, start_date, args.frame_spacing_weeks, args.frame_spacing_days)
+    if min_date and max_date:
+        print(f"Planned commit date range: {min_date.strftime('%Y-%m-%d')} to {max_date.strftime('%Y-%m-%d')}")
+    else:
+        print("Planned commit date range: (no commits, maybe empty frame data)")
 
     generate_commits(frames_to_use, start_date, args.intensity, args.frame_spacing_weeks, args.dry_run, frame_spacing_days=args.frame_spacing_days)
 
