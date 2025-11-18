@@ -53,7 +53,7 @@ def create_commit_for_date(target_date, intensity, dry_run=False, message="BadAp
             subprocess.run(command, check=True, env=env)
 
 
-def generate_commits(frames, start_date, intensity, frame_spacing_weeks=1, dry_run=False):
+def generate_commits(frames, start_date, intensity, frame_spacing_weeks=1, dry_run=False, frame_spacing_days=None):
     # frames: list of 52x7 (weeks x days) arrays
     base = start_date
     for f_idx, weeks in enumerate(frames):
@@ -61,7 +61,10 @@ def generate_commits(frames, start_date, intensity, frame_spacing_weeks=1, dry_r
             raise ValueError("Each frame must contain 52 weeks of 7-day arrays")
         print(f"Generating frame {f_idx + 1}/{len(frames)}")
         # compute offset for this frame (if multiple frames)
-        frame_offset_weeks = f_idx * frame_spacing_weeks
+        if frame_spacing_days is not None:
+            frame_offset = timedelta(days=f_idx * frame_spacing_days)
+        else:
+            frame_offset = timedelta(weeks=f_idx * frame_spacing_weeks)
 
         for week_index, week_data in enumerate(weeks):
             if len(week_data) != 7:
@@ -70,7 +73,7 @@ def generate_commits(frames, start_date, intensity, frame_spacing_weeks=1, dry_r
             for day_index, should_commit in enumerate(week_data):
                 if should_commit:
                     # target date: base + (frame_offset * 7 weeks) + week_index weeks + day_index days
-                    target_date = base + timedelta(weeks=frame_offset_weeks + week_index, days=day_index)
+                    target_date = base + frame_offset + timedelta(weeks=week_index, days=day_index)
                     create_commit_for_date(target_date, intensity=intensity, dry_run=dry_run,
                                            message=f"BadApple F{f_idx+1} W{week_index+1} D{day_index+1}")
 
@@ -85,6 +88,9 @@ def main():
     parser.add_argument("--start-date", default=None, help="Anchor start date (Sunday) - format YYYY-MM-DD")
     parser.add_argument("--intensity", type=int, default=10, help="Number of commits per pixel to affect color intensity")
     parser.add_argument("--frame-spacing-weeks", type=int, default=1, help="Spacing between frames (in weeks)")
+    parser.add_argument("--frame-spacing-days", type=int, default=None, help="Spacing between frames in days (overrides weeks when set)")
+    parser.add_argument("--start-frame", type=int, default=0, help="Index of first frame to generate (0-based)")
+    parser.add_argument("--end-frame", type=int, default=None, help="Index of last frame to generate (exclusive)")
     parser.add_argument("--dry-run", action="store_true", help="Don't actually run git, just print")
     parser.add_argument("--push", action="store_true", help="After generation, push to remote 'origin main' (use with care)")
 
@@ -116,7 +122,13 @@ def main():
     if commits > 0:
         print(f"WARNING: repository already has {commits} commits. It's recommended to use a fresh repo.")
 
-    generate_commits(frames, start_date, args.intensity, args.frame_spacing_weeks, args.dry_run)
+    # slice frames
+    if args.end_frame is None:
+        frames_to_use = frames[args.start_frame:]
+    else:
+        frames_to_use = frames[args.start_frame:args.end_frame]
+
+    generate_commits(frames_to_use, start_date, args.intensity, args.frame_spacing_weeks, args.dry_run, frame_spacing_days=args.frame_spacing_days)
 
     if args.push and not args.dry_run:
         print("Pushing commits to origin main (please ensure your remote is set and you're OK with force push)")

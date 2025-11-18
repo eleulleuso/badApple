@@ -20,6 +20,20 @@ def main():
     parser.add_argument("--frame", type=int, default=0)
     args = parser.parse_args()
 
+    import os, glob
+
+    if not os.path.exists(args.data):
+        base_name = os.path.basename(args.data)
+        print(f"ERROR: File not found: {args.data}")
+        matches = glob.glob(f"**/{base_name}", recursive=True)
+        if matches:
+            print("Found these matching files in your workspace:")
+            for m in matches:
+                print("  ", m)
+        else:
+            print("No matching files were found.")
+        return
+
     with open(args.data) as f:
         data = json.load(f)
 

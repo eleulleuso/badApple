@@ -14,6 +14,8 @@ import json
 import math
 from PIL import Image
 import imageio
+import os
+import glob
 
 
 def pixel_from_frame(frame, threshold=128):
@@ -59,6 +61,19 @@ def main():
     parser.add_argument('--max-frames', type=int, default=600, help='Maximum number of frames to extract')
     parser.add_argument('--threshold', type=int, default=128, help='Threshold for black/white')
     args = parser.parse_args()
+
+    if not os.path.exists(args.input):
+        base_name = os.path.basename(args.input)
+        print(f"ERROR: Input file not found: {args.input}")
+        # try to suggest similar files
+        matches = glob.glob(f"**/{base_name}", recursive=True)
+        if matches:
+            print("Found these matching files in the repo:")
+            for m in matches:
+                print("  ", m)
+        else:
+            print("No matching files were found in the workspace. Check the path or move the file into the repository.")
+        return
 
     print(f"Reading video {args.input} at target {args.fps} fps (max frames={args.max_frames})")
     raw_frames = extract_frames(args.input, fps=args.fps, max_frames=args.max_frames)
