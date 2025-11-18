@@ -27,6 +27,12 @@ Or convert from video (MP4) using ffmpeg backend via imageio:
 
 ```bash
 python bad_apple/convert_video.py --input vidio/badapple.mp4 --output frames.json --fps 1 --max-frames 300
+
+If your video file is in a different folder (e.g., `source/vidio/badapple.mp4`), pass the full relative path:
+
+```bash
+python bad_apple/convert_video.py --input source/vidio/badapple.mp4 --output frames.json --fps 1
+```
 ```
 
 3. Dry-run generation to see what commits would be made:
@@ -81,3 +87,4 @@ PY
 This repo is an educational toy. Manipulating commit timestamps can be surprising to collaborators
 and may be confusing in real projects. Use responsibly.
 
+# played-on-GitHub-
